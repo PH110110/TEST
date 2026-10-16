@@ -137,6 +137,11 @@ def default_source():
     return max(cands, key=os.path.getmtime)
 
 
+def model_label(p):
+    """把多行型号单元格合并成单行展示文本。"""
+    return " / ".join(x.strip() for x in p["model"].split("\n") if x.strip())
+
+
 # ---------------- 匹配与打分 ----------------
 
 def hit_fields(p, term):
@@ -218,7 +223,7 @@ def context_line(p, fields):
 
 
 def render(p, fields, terms, prefix=None):
-    model_text = " / ".join(x.strip() for x in p["model"].split("\n") if x.strip())
+    model_text = model_label(p)
     parts = [colorize(model_text, terms)]
     if p["price"] is not None:
         parts.append(f"¥{p['price']}")

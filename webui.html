@@ -93,18 +93,26 @@
         results.innerHTML = '<div class="empty">未命中任何产品</div>';
         return;
       }
-      status.textContent = "命中 " + payload.results.length + " 条（" + payload.mode + "）";
-      for (const item of payload.results) {
-        const div = document.createElement("div");
-        div.className = "result";
-        let html = '<div class="model">' + esc(item.model);
-        if (item.price != null) html += '<span class="price">¥' + esc(item.price) + "</span>";
-        html += "</div>";
-        if (item.remark) html += '<div class="remark">' + esc(item.remark).replace(/\n/g, " · ") + "</div>";
-        if (item.context) html += '<div class="context">' + esc(item.context) + "</div>";
-        div.innerHTML = html;
-        results.appendChild(div);
+      let statusText = "命中 " + payload.results.length + " 条（" + payload.mode + "）";
+      if (payload.mode === "OR") {
+        statusText = "未同时包含全部关键词，已放宽为任一命中。" + statusText;
       }
+      status.textContent = statusText;
+      for (const item of payload.results) {
+        appendResult(item, item.context ? esc(item.context) : "");
+      }
+    }
+
+    function appendResult(item, contextHtml) {
+      const div = document.createElement("div");
+      div.className = "result";
+      let html = '<div class="model">' + esc(item.model);
+      if (item.price != null) html += '<span class="price">¥' + esc(item.price) + "</span>";
+      html += "</div>";
+      if (item.remark) html += '<div class="remark">' + esc(item.remark).replace(/\n/g, " · ") + "</div>";
+      if (contextHtml) html += '<div class="context">' + contextHtml + "</div>";
+      div.innerHTML = html;
+      results.appendChild(div);
     }
 
     async function search(keywords) {
@@ -120,15 +128,7 @@
       results.innerHTML = "";
       status.textContent = "共 " + data.products.length + " 个产品";
       for (const item of data.products) {
-        const div = document.createElement("div");
-        div.className = "result";
-        let html = '<div class="model">' + esc(item.model);
-        if (item.price != null) html += '<span class="price">¥' + esc(item.price) + "</span>";
-        html += "</div>";
-        if (item.remark) html += '<div class="remark">' + esc(item.remark).replace(/\n/g, " · ") + "</div>";
-        if (item.app) html += '<div class="context">APP：' + esc(item.app) + "</div>";
-        div.innerHTML = html;
-        results.appendChild(div);
+        appendResult(item, item.app ? "APP：" + esc(item.app) : "");
       }
     }
 

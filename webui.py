@@ -14,6 +14,7 @@
 import argparse
 import json
 import os
+import sys
 import threading
 import urllib.parse
 import webbrowser
@@ -36,17 +37,13 @@ def load_products():
     return PRODUCTS
 
 
-def model_text(p):
-    return " / ".join(x.strip() for x in p["model"].split("\n") if x.strip())
-
-
-def result_item(p, fields, terms):
+def result_item(p, fields, score):
     return {
-        "model": model_text(p),
+        "model": query.model_label(p),
         "price": p["price"],
         "remark": p["remark"],
         "context": query.context_line(p, fields),
-        "score": sum(query.WEIGHTS[k] for t in terms for k in fields[t]),
+        "score": score,
     }
 
 
@@ -63,7 +60,7 @@ def build_search_response(products, raw_query):
     return {
         "query": raw_query,
         "mode": mode,
-        "results": [result_item(p, fields, terms) for _score, p, fields in results],
+        "results": [result_item(p, fields, score) for score, p, fields in results],
     }
 
 
@@ -71,7 +68,7 @@ def build_products_response(products):
     return {
         "products": [
             {
-                "model": model_text(p),
+                "model": query.model_label(p),
                 "price": p["price"],
                 "remark": p["remark"],
                 "app": p["app"],
@@ -127,14 +124,17 @@ def make_server(addr):
 def main():
     query.configure_console()
     ap = argparse.ArgumentParser(prog="webui.py", description="DLD 产品查询器 WebUI")
-    ap.add_argument("--host", default="127.0.0.1", help="监听地址（默认 127.0.0.1）")
     ap.add_argument("--port", type=int, default=8000, help="监听端口（默认 8000）")
     ap.add_argument("--open", action="store_true", help="启动后自动打开浏览器")
     args = ap.parse_args()
 
-    load_products()
-    server = make_server((args.host, args.port))
-    url = f"http://{args.host}:{server.server_address[1]}/"
+    try:
+        load_products()
+    except FileNotFoundError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+    server = make_server(("127.0.0.1", args.port))
+    url = f"http://127.0.0.1:{server.server_address[1]}/"
     print(f"DLD 产品查询器已启动：{url}（Ctrl+C 停止）")
     if args.open:
         threading.Timer(0.5, webbrowser.open, args=(url,)).start()
