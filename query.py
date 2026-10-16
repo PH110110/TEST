@@ -37,6 +37,19 @@ DEFAULT_MAX = 8
 _USE_COLOR = False
 
 
+# ---------------- 控制台编码 ----------------
+
+def configure_console():
+    """Windows 控制台默认 GBK 打不出 ¥ 等字符，统一改用 UTF-8 输出。"""
+    if os.name != "nt":
+        return
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 # ---------------- ANSI 高亮 ----------------
 
 def init_color(force_off=False):
@@ -116,6 +129,19 @@ def load_products(source):
     return products, True
 
 
+def default_source():
+    """取脚本同目录下最新的「产品*.xlsx」作为默认数据源。"""
+    cands = glob.glob(os.path.join(SCRIPT_DIR, "产品*.xlsx"))
+    if not cands:
+        return None
+    return max(cands, key=os.path.getmtime)
+
+
+def model_label(p):
+    """把多行型号单元格合并成单行展示文本。"""
+    return " / ".join(x.strip() for x in p["model"].split("\n") if x.strip())
+
+
 # ---------------- 匹配与打分 ----------------
 
 def hit_fields(p, term):
@@ -124,6 +150,7 @@ def hit_fields(p, term):
 
 def search(products, terms, mode):
     """mode: 'and' 全部命中 / 'or' 任一命中。返回 [(score, p, fields_map), ...]"""
+    terms = [t.lower() for t in terms]
     results = []
     for p in products:
         fields = {t: hit_fields(p, t) for t in terms}
@@ -196,7 +223,7 @@ def context_line(p, fields):
 
 
 def render(p, fields, terms, prefix=None):
-    model_text = " / ".join(x.strip() for x in p["model"].split("\n") if x.strip())
+    model_text = model_label(p)
     parts = [colorize(model_text, terms)]
     if p["price"] is not None:
         parts.append(f"¥{p['price']}")
@@ -213,6 +240,7 @@ def render(p, fields, terms, prefix=None):
 # ---------------- 主流程 ----------------
 
 def main():
+    configure_console()
     init_color()
     ap = argparse.ArgumentParser(
         prog="query.py",
@@ -236,10 +264,9 @@ def main():
         else None
     )
     if not explicit:
-        cands = glob.glob(os.path.join(SCRIPT_DIR, "产品*.xlsx"))
-        if not cands:
+        source = default_source()
+        if source is None:
             sys.exit("当前目录没有「产品*.xlsx」，请用参数指定数据源（python query.py 路径/产品xxx.xlsx …）")
-        source = max(cands, key=os.path.getmtime)
 
     products, _rebuilt = load_products(source)
     terms = [t.strip().lower() for t in keywords if t.strip()]
