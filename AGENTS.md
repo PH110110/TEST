@@ -8,6 +8,8 @@ DLD Smart Watch 产品资料仓库（产品目录 PDF ×2 + 2026 产品报价表
 
 Issues live in this repo's GitHub Issues (PH110110/TEST), operated via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
+`gh` is installed at `C:\Program Files\GitHub CLI\gh.exe`; if `gh` is not on PATH in an agent session, call that full path.
+
 ### Triage labels
 
 Default five-role labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
